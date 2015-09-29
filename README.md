@@ -3,7 +3,7 @@ Dallas Young Makers Source Repo
 
 This repo hosts source code and project materials used in classes taught by the Dallas Young Makers Group.  All code is published under GPL license.
 
-Included is a utility to automate the flashing RCX bricks (flash-rcx-class).  This will flash the brick with the approproate firmware and load the programs used in the specified class.
+Included is a utility to automate the flashing RCX bricks [flash-rcx-class](../master/tools/flash-rcx-class).  This will flash the brick with the approproate firmware and load the programs used in the specified class.
 
 After you have the files, you can flash your RCX brick(s) with the following command from the tools folder:
 
