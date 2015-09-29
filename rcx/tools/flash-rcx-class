@@ -82,7 +82,7 @@ function write_nqc_program {
 		echo Switching RCX to PRG ${2}...
 		rawcmd=$(expr 9899 + $2)
 		#Raw command to switch to Program #
-		nqc -Susb:$1 raw $rawcmd
+		nqc -Susb:$1 -raw $rawcmd
 
 		#Write nqc to Program #
 		echo Flashing ${3}...
