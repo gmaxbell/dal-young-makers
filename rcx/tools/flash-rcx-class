@@ -51,7 +51,7 @@ if [ -d "$1" ]; then
 	mkdir -p $CLASS_TMP
 	
 	#Program firmware uless bypassed
-	if [ -n $SKIP_FIRMWARE ]; then
+	if [ -z $SKIP_FIRMWARE ]; then
 		if [ -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
 			echo "Found ${CLASS_TMP}/${FIRMWARE_FILE}"
 		else
@@ -62,6 +62,8 @@ if [ -d "$1" ]; then
 			unzip -n "${CLASS_TMP}/firmware.zip" -d "${CLASS_TMP}"
 		fi
 		nqc -Susb:$DEVICE -firmware "${CLASS_TMP}/${FIRMWARE_FILE}"
+	else
+		echo "Skipping Firmware Flash..."
 	fi
 
 	#Load each [1-5].nqc file in the class folder
