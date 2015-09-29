@@ -1,0 +1,93 @@
+#!/bin/bash
+
+FIRMWARE_URL="http://pbrick.info/wp-content/uploads/2013/10/fast0612.zip"
+FIRMWARE_FILE="fast0612.lgo"
+function display_help {
+	echo Usage [OPTION]... [PATH]
+	echo Program RCX units with firmware and programs for class.
+	echo [PATH] must be specified as the full path to the class folder
+	echo
+	echo Arguments:
+	echo   -d, --device NAME	Specify IR interface for programming
+	echo   -s, --skip-firmware	Skip firmware
+	echo   -h, --help		Display this help message
+	exit
+}
+
+while [[ $# > 1 ]]
+do
+key="$1"
+
+case $key in
+	-d|--device)
+	DEVICE="$2"
+	shift
+	;;
+	-s|--skip-firmware)
+	SKIP_FIRMWARE=YES
+	;;
+	*)
+	display_help
+	;;
+esac
+shift
+done
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	display_help
+	echo help help help
+fi
+	
+echo
+echo CLASS_PATH = "${1}"
+echo DEVICE_NAME = "${DEVICE}"
+echo SKIP_FIRMWARE = "${SKIP_FIRMWARE}"
+echo FIRMWARE_URL = "${FIRMWARE_URL}"
+
+#Make sure that the class directory exists
+if [ -d "$1" ]; then
+	echo "Found $1"
+	CLASS_TMP=${1%%/}/tmp
+	mkdir -p $CLASS_TMP
+	
+	#Program firmware uless bypassed
+	if [ -n $SKIP_FIRMWARE ]; then
+		if [ -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
+			echo "Found ${CLASS_TMP}/${FIRMWARE_FILE}"
+		else
+			echo "Firmware not found.  Downloading..."
+			#Grab firware from URL at top of file and place in class/tmp
+			wget -O ""${CLASS_TMP}/firmware.zip"" "${FIRMWARE_URL}"
+			#unzip downloaded firmware
+			unzip -n "${CLASS_TMP}/firmware.zip" -d "${CLASS_TMP}"
+		fi
+		nqc -Susb:$DEVICE -firmware "${CLASS_TMP}/${FIRMWARE_FILE}"
+	fi
+
+	#Load each [1-5].nqc file in the class folder
+	if [ -e "${1%%/}1.nqc" ]; then
+		
+		#Raw command to switch to Program #1
+		nqc -Susb:$DEVICE raw 9900
+
+		#Write 1.nqc to Program #1
+		nqc -Susb:$DEVICE -d "${1%%/}1.nqc"
+	fi
+	if [ -e "${1%%/}2.nqc" ]; then
+		nqc -Susb:$DEVICE raw 9901
+		nqc -Susb:$DEVICE -d "${1%%/}2.nqc"
+	fi
+	if [ -e "${1%%/}3.nqc" ]; then
+		nqc -Susb:$DEVICE raw 9902
+		nqc -Susb:$DEVICE -d "${1%%/}3.nqc"
+	fi
+	if [ -e "${1%%/}4.nqc" ]; then
+		nqc -Susb:$DEVICE raw 9903
+		nqc -Susb:$DEVICE -d "${1%%/}4.nqc"
+	fi
+	if [ -e "${1%%/}5.nqc" ]; then
+		nqc -Susb:$DEVICE raw 9904
+		nqc -Susb:$DEVICE -d "${1%%/}5.nqc"
+	fi
+fi
+
