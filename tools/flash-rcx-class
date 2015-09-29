@@ -109,12 +109,12 @@ function do_flash {
 		echo "Skipping Firmware Flash..."
 	fi
 
-	#Load each [1-5].nqc file in the class folder
-	write_nqc_program $tower_device 1 "${CLASS_PATH%%/}/1.nqc"
-	write_nqc_program $tower_device 2 "${CLASS_PATH%%/}/2.nqc"
-	write_nqc_program $tower_device 3 "${CLASS_PATH%%/}/3.nqc"
-	write_nqc_program $tower_device 4 "${CLASS_PATH%%/}/4.nqc"
+	#Attempt to load each [1-5].nqc file in the class folder
 	write_nqc_program $tower_device 5 "${CLASS_PATH%%/}/5.nqc"
+	write_nqc_program $tower_device 4 "${CLASS_PATH%%/}/4.nqc"
+	write_nqc_program $tower_device 3 "${CLASS_PATH%%/}/3.nqc"
+	write_nqc_program $tower_device 2 "${CLASS_PATH%%/}/2.nqc"
+	write_nqc_program $tower_device 1 "${CLASS_PATH%%/}/1.nqc"
 }
 
 
