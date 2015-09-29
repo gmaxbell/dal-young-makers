@@ -1,19 +1,14 @@
 #!/bin/bash
+#Bash script to program RCX's
+#Buddy Whittenburg 2015-09-29
+
+#enable job control
+set -m 
 
 FIRMWARE_URL="http://pbrick.info/wp-content/uploads/2013/10/fast0612.zip"
 FIRMWARE_FILE="fast0612.lgo"
-function display_help {
-	echo Usage [OPTION]... [PATH]
-	echo Program RCX units with firmware and programs for class.
-	echo [PATH] must be specified as the full path to the class folder
-	echo
-	echo Arguments:
-	echo   -d, --device NAME	Specify IR interface for programming
-	echo   -s, --skip-firmware	Skip firmware
-	echo   -h, --help		Display this help message
-	exit
-}
 
+#Process command line params
 while [[ $# > 1 ]]
 do
 key="$1"
@@ -27,6 +22,7 @@ case $key in
 	SKIP_FIRMWARE=YES
 	;;
 	*)
+	#invalid parameter
 	display_help
 	;;
 esac
@@ -35,61 +31,150 @@ done
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	display_help
-	echo help help help
 fi
+
+CLASS_PATH="${1}"
+CLASS_TMP=${1%%/}/tmp
+
 	
 echo
-echo CLASS_PATH = "${1}"
-echo DEVICE_NAME = "${DEVICE}"
-echo SKIP_FIRMWARE = "${SKIP_FIRMWARE}"
-echo FIRMWARE_URL = "${FIRMWARE_URL}"
+#echo CLASS_PATH = "${CLASS_PATH}"
+#echo DEVICE_NAME = "${DEVICE}"
+#echo SKIP_FIRMWARE = "${SKIP_FIRMWARE}"
+#echo FIRMWARE_URL = "${FIRMWARE_URL}"
 
-#Make sure that the class directory exists
-if [ -d "$1" ]; then
-	echo "Found $1"
-	CLASS_TMP=${1%%/}/tmp
-	mkdir -p $CLASS_TMP
-	
-	#Program firmware uless bypassed
+
+#FUNCTIONS:
+
+#Displays help dialog and exits
+function display_help {
+	echo Usage [OPTION]... [PATH]
+	echo Program RCX units with firmware and programs for class.
+	echo [PATH] must be specified as the full path to the class folder
+	echo
+	echo Arguments:
+	echo   -d, --device NAME	Specify IR interface for programming.
+	echo				Device is optional. We use all devices 
+	echo 				by default
+	echo   -s, --skip-firmware	Skip firmware
+	echo   -h, --help		Display this help message
+	exit
+}
+
+#Downloads and extracts firmware
+function download_firmware {
+	echo "Downloading firmware to firmware.zip..."
+	wget -O ""${CLASS_TMP}/firmware.zip"" "${FIRMWARE_URL}"
+
+	echo "Unziping firmware.zip..."
+	unzip -n "${CLASS_TMP}/firmware.zip" -d "${CLASS_TMP}"
+}
+
+#Writes a single program to RCX
+#Params:
+#	$1 = IR Tower Device
+#	$2 = RCX Program Number [1-5]
+#	$3 = NQC Program Path
+function write_nqc_program {
+	if [ -e "$3" ]; then
+		
+		echo Found $3 
+		echo Switching RCX to PRG ${2}...
+		rawcmd=$(expr 9899 + $2)
+		#Raw command to switch to Program #
+		nqc -Susb:$1 raw $rawcmd
+
+		#Write nqc to Program #
+		echo Flashing ${3}...
+		nqc -Susb:$1 -d "$3"
+	else
+		echo Could not find ${3}.
+	fi
+}
+
+#flashes RCX Brick
+#Params:
+#	$1 = IR Tower Device
+function do_flash {
+	tower_device=$1
+	#Program firmware unless bypassed
+	echo Starting flash job on $tower_device
 	if [ -z $SKIP_FIRMWARE ]; then
 		if [ -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
-			echo "Found ${CLASS_TMP}/${FIRMWARE_FILE}"
+			nqc -Susb:$tower_device -firmware "${CLASS_TMP}/${FIRMWARE_FILE}"
 		else
-			echo "Firmware not found.  Downloading..."
-			#Grab firware from URL at top of file and place in class/tmp
-			wget -O ""${CLASS_TMP}/firmware.zip"" "${FIRMWARE_URL}"
-			#unzip downloaded firmware
-			unzip -n "${CLASS_TMP}/firmware.zip" -d "${CLASS_TMP}"
+			echo ERROR: Could not find ${CLASS_TMP}/${FIRMWARE_FILE}!
 		fi
-		nqc -Susb:$DEVICE -firmware "${CLASS_TMP}/${FIRMWARE_FILE}"
 	else
 		echo "Skipping Firmware Flash..."
 	fi
 
 	#Load each [1-5].nqc file in the class folder
-	if [ -e "${1%%/}1.nqc" ]; then
-		
-		#Raw command to switch to Program #1
-		nqc -Susb:$DEVICE raw 9900
+	write_nqc_program $tower_device 1 "${CLASS_PATH%%/}/1.nqc"
+	write_nqc_program $tower_device 2 "${CLASS_PATH%%/}/2.nqc"
+	write_nqc_program $tower_device 3 "${CLASS_PATH%%/}/3.nqc"
+	write_nqc_program $tower_device 4 "${CLASS_PATH%%/}/4.nqc"
+	write_nqc_program $tower_device 5 "${CLASS_PATH%%/}/5.nqc"
+}
 
-		#Write 1.nqc to Program #1
-		nqc -Susb:$DEVICE -d "${1%%/}1.nqc"
-	fi
-	if [ -e "${1%%/}2.nqc" ]; then
-		nqc -Susb:$DEVICE raw 9901
-		nqc -Susb:$DEVICE -d "${1%%/}2.nqc"
-	fi
-	if [ -e "${1%%/}3.nqc" ]; then
-		nqc -Susb:$DEVICE raw 9902
-		nqc -Susb:$DEVICE -d "${1%%/}3.nqc"
-	fi
-	if [ -e "${1%%/}4.nqc" ]; then
-		nqc -Susb:$DEVICE raw 9903
-		nqc -Susb:$DEVICE -d "${1%%/}4.nqc"
-	fi
-	if [ -e "${1%%/}5.nqc" ]; then
-		nqc -Susb:$DEVICE raw 9904
-		nqc -Susb:$DEVICE -d "${1%%/}5.nqc"
-	fi
-fi
 
+function main {
+	#Make sure that the class directory exists
+	if [ -d "$CLASS_PATH" ]; then
+		echo "Found class $CLASS_PATH"
+		mkdir -p $CLASS_TMP
+
+		if [ -z $SKIP_FIRMWARE ]; then
+			if [! -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
+				download_firmware
+				if [! -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
+					echo ERROR: Firmware download Failed!  Exiting...
+					exit
+				fi
+			fi
+		fi
+
+		if [ $DEVICE ]; then
+			#Device specified, just do it
+			echo Starting flash job on: $DEVICE
+			job_log="${CLASS_TMP}/$(basename ${DEVICE}).log"
+			do_flash $DEVICE >> $job_log
+			echo flash job complete...
+		else
+			#No Device Specified.  Let's make a list of devices.
+			device_list=`ls /dev/usb/legousbtower*`
+			
+			#let's see what we got...
+			if [ -z $device_list ]; then
+				echo No IR towers found!  Exiting...
+				exit
+			else
+				#iterate the list and start a job for each tower
+				for towerdev in $device_list; do
+					echo Starting flash job on: $towerdev
+					job_log="${CLASS_TMP}/$(basename ${towerdev}).log"
+					do_flash $towerdev >> $job_log &
+				done
+				sleep 3
+				echo -n Waiting for flash jobs to complete...
+
+				# Wait for jobs to complete
+				while [ 1 ]; do
+					fg 2> /dev/null
+					if [ $? == 1 ]; then
+						break
+					fi
+					sleep 2
+					echo -n .
+				done
+				echo
+				echo
+				echo All flash jobs complete...
+			fi
+		fi
+	fi
+	echo Exiting...
+}
+
+#call main function
+main
