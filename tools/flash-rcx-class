@@ -125,9 +125,9 @@ function main {
 		mkdir -p $CLASS_TMP
 
 		if [ -z $SKIP_FIRMWARE ]; then
-			if [! -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
+			if [ ! -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
 				download_firmware
-				if [! -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
+				if [ ! -e "${CLASS_TMP}/${FIRMWARE_FILE}" ]; then
 					echo ERROR: Firmware download Failed!  Exiting...
 					exit
 				fi
